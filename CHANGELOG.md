@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] — 2026-04-07
+
+### Fixed
+
+- **Lint fallback**: `next lint` falla en Next.js 16.2.1 con "Invalid project directory". Ahora check-tests documenta la cadena de fallback explicita: `next lint` → `eslint` → skip
+
 ## [1.1.0] — 2026-04-07
 
 Quality gate completo integrado en `/check-tests`. Basado en feedback de Angel Aparicio y su skill quality-gate para la comunidad Vive Coders.

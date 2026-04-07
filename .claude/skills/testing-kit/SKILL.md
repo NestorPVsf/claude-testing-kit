@@ -1,7 +1,7 @@
 ---
 name: testing-kit
 description: "Unit + E2E testing + quality gate para Next.js con Claude Code. Combina TDD workflow, Vitest patterns, Playwright E2E, validacion de build, env vars, y security check en una sola skill. Se activa al crear/modificar route.ts, page.tsx, o archivos de test. Para cualquier proyecto Next.js con App Router."
-version: 1.1.0
+version: 1.1.1
 author: Fernando Montero (Fersora Solutions)
 license: MIT
 ---
