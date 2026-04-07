@@ -1,0 +1,8 @@
+# E2E tests solo si el dev server esta levantado
+if curl -s --max-time 2 http://localhost:3000 > /dev/null 2>&1; then
+  echo "Dev server detectado — ejecutando E2E tests..."
+  npm run test:e2e
+else
+  echo "⚠️  Dev server no esta corriendo — saltando E2E tests"
+  echo "   Para ejecutar E2E manualmente: npm run dev && npm run test:e2e"
+fi
