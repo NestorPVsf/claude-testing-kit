@@ -171,14 +171,15 @@ Omitir y reportar como "excluidas":
 
 ## Paso 6: Lint (10 puntos)
 
-Ejecutar `npx next lint` (o `npx eslint .` si no es Next.js).
+Intentar en este orden:
+1. `npx next lint` — si funciona, usar su salida
+2. Si `next lint` falla (error de directorio, no instalado, etc.) → usar `npx eslint .` como fallback
+3. Si tampoco hay eslint → dar 10/10 con nota: "No hay linter configurado"
 
+Puntuacion:
 - Sin errores → 10/10
 - Solo warnings → 8/10
-- Errores → restar proporcionalmente
-- No hay linter configurado → 10/10 con nota: "No hay linter configurado"
-
-Si el comando falla porque no esta instalado, omitir y dar 10/10.
+- Errores de lint → restar proporcionalmente (ej: 2 errores + 3 warnings → 5/10)
 
 ## Paso 7: Mostrar reporte con score
 
