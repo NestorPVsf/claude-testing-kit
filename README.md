@@ -1,6 +1,6 @@
-# Claude Testing Kit
+# Claude Testing Kit v1.1
 
-Kit de testing **drop-in** para proyectos Next.js con [Claude Code](https://claude.ai/code).
+Kit de testing y **quality gate** drop-in para proyectos Next.js con [Claude Code](https://claude.ai/code).
 
 Pegale este repo a Claude Code dentro de tu proyecto y el se encarga de todo — sin que tengas que saber programar tests.
 
@@ -76,7 +76,7 @@ cp -n /tmp/testing-kit/.claude/commands/check-tests.md .claude/commands/
 - **Paginas** (`page.tsx`): E2E test DESPUES del codigo, ANTES del commit
 - **Minimo 6 tests** por endpoint: 200, 401, 400, 404, 500 + uno extra
 - **Nunca** commitear codigo sin sus tests
-- `/check-tests` — Escanea cobertura y genera tests faltantes
+- `/check-tests` — Quality gate: build, env vars, seguridad, tests, lint. Score 0-100 con semaforo. Genera tests faltantes
 ```
 
 Si NO existe `.claude/CLAUDE.md` → copiar el del kit.
@@ -140,7 +140,14 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'setup', testMatch: '**/auth.setup.ts' },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], storageState: 'tests/.auth/user.json' },
+      dependencies: ['setup'],
+    },
+  ],
   webServer: {
     command: '$PM run dev', // usar el PM detectado
     url: 'http://localhost:3000',
@@ -157,7 +164,7 @@ npx husky init
 
 Si `.husky/pre-commit` ya existe, **agregar** `$PM run test` al final sin borrar el contenido existente. Si no existe, copiar del kit.
 
-Si `.husky/pre-push` ya existe, **agregar** el bloque E2E al final. Si no existe, copiar del kit.
+Si `.husky/pre-push` ya existe, **agregar** el bloque de build + E2E al final. Si no existe, copiar del kit. El pre-push ahora ejecuta `$PM run build` primero (bloquea si falla) y luego E2E condicional.
 
 En ambos hooks, reemplazar `npm` por el PM detectado.
 
@@ -179,7 +186,9 @@ Agregar al `.gitignore` (si no estan ya):
 tests/.auth/
 test-results/
 playwright-report/
-*.env.local
+.env
+.env.local
+.env*.local
 ```
 
 ### Paso 11 — Copiar .env.example
@@ -210,7 +219,7 @@ Informar al usuario:
 - Cada vez que creas un `route.ts` → Claude escribe los tests **antes** que el codigo (TDD)
 - Cada vez que creas un `page.tsx` → Claude escribe el test E2E antes de commitear
 - Cada commit ejecuta los unit tests automaticamente (Husky pre-commit)
-- Cada push ejecuta los E2E tests si el server esta corriendo (Husky pre-push)
+- Cada push ejecuta `npm run build` primero (bloquea si falla) + E2E tests si el server esta corriendo (Husky pre-push)
 - Con `/check-tests` puedes escanear todo el proyecto y generar los tests que falten de golpe
 
 ## Como funciona
@@ -233,16 +242,17 @@ Claude: 1. Construye page.tsx
         3. Verifica que Playwright pasa
 ```
 
-## /check-tests — Escanear y generar tests
+## /check-tests — Quality gate completo
 
-Escribe `/check-tests` en Claude Code:
+Escribe `/check-tests` en Claude Code y obtendras un **score 0-100 con semaforo**:
 
-1. **Detecta** la estructura del proyecto (`src/app/` o `app/`)
-2. **Escanea** todos los `route.ts` y `page.tsx`
-3. **Reporta** cuales tienen test y cuales no
-4. **Pregunta** si quieres que genere los que faltan
-5. **Genera unit tests** — lee cada `route.ts`, crea su `route.test.ts`, ejecuta y verifica
-6. **Genera E2E tests** — lee cada `page.tsx`, crea su `.spec.ts`, ejecuta y verifica
+1. **Build** (30 pts) — Compila sin errores? Detecta TypeScript roto
+2. **Env vars** (20 pts) — Tienes todas las variables? Detecta faltantes y placeholders
+3. **Seguridad** (15 pts) — API keys expuestas? Endpoints sin auth?
+4. **Tests** (25 pts) — Cobertura de unit tests y E2E
+5. **Lint** (10 pts) — Calidad del codigo
+
+Despues del score, pregunta si quieres que genere los tests faltantes automaticamente.
 
 ```
 UNIT TESTS (API routes):
@@ -261,7 +271,7 @@ Faltan 2 unit tests y 1 E2E test. ¿Los genero? (si/no)
 ## Que hace Husky
 
 - **pre-commit** → ejecuta unit tests. Si fallan, el commit se bloquea.
-- **pre-push** → ejecuta E2E **solo si el dev server esta corriendo** en localhost:3000. Si no, los salta con un aviso.
+- **pre-push** → ejecuta `npm run build` primero (bloquea si falla) + E2E tests si el dev server esta corriendo en localhost:3000.
 
 ## Que incluye el kit
 

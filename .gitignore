@@ -10,4 +10,6 @@ blob-report/
 coverage/
 
 # Environment
-*.env.local
+.env
+.env.local
+.env*.local

@@ -1,9 +1,13 @@
 ---
 paths:
   - "**/*.test.ts"
+  - "**/*.test.tsx"
   - "**/*.spec.ts"
+  - "**/*.spec.tsx"
   - "**/route.ts"
   - "**/page.tsx"
+  - "**/vitest.config.*"
+  - "**/playwright.config.*"
 ---
 
 # Testing — TDD + E2E
@@ -63,6 +67,12 @@ Numero de page.tsx nuevos = Numero de .spec.ts nuevos
 ```
 
 Si no coinciden → PARAR y crear los tests que faltan.
+
+## Seguridad
+
+- NUNCA hardcodear API keys, tokens o secrets en el codigo — siempre usar `process.env.`
+- Verificar que los endpoints de API tienen auth (excepto publicos: health, webhook, callback)
+- Las variables sin `NEXT_PUBLIC_` NO deben usarse en componentes del cliente
 
 ## Regla de oro
 

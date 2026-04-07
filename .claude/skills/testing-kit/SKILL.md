@@ -1,12 +1,12 @@
 ---
 name: testing-kit
-description: "Unit + E2E testing para Next.js con Claude Code. Combina TDD workflow, Vitest patterns y Playwright E2E en una sola skill. Se activa al crear/modificar route.ts, page.tsx, o archivos de test. Para cualquier proyecto Next.js con App Router."
-version: 1.0.0
+description: "Unit + E2E testing + quality gate para Next.js con Claude Code. Combina TDD workflow, Vitest patterns, Playwright E2E, validacion de build, env vars, y security check en una sola skill. Se activa al crear/modificar route.ts, page.tsx, o archivos de test. Para cualquier proyecto Next.js con App Router."
+version: 1.1.0
 author: Fernando Montero (Fersora Solutions)
 license: MIT
 ---
 
-# testing-kit — TDD + Unit + E2E para Next.js
+# testing-kit — TDD + Unit + E2E + Quality Gate para Next.js
 
 ## Parte 1: TDD — Test First, Code Second
 
@@ -202,6 +202,44 @@ mockFrom.mockReturnValue({
 })
 ```
 
+### Mock Patterns para Prisma
+
+> Si usas Prisma en vez de Supabase, usa estos patrones. La estructura del test (6 casos, assertions de status) aplica igual.
+
+```typescript
+const mockPrisma = {
+  user: {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}
+
+vi.mock('@/lib/prisma', () => ({
+  default: mockPrisma,
+}))
+
+// SELECT
+mockPrisma.user.findMany.mockResolvedValue([{ id: '1', name: 'Test' }])
+
+// SELECT ONE
+mockPrisma.user.findUnique.mockResolvedValue({ id: '1', name: 'Test' })
+
+// INSERT
+mockPrisma.user.create.mockResolvedValue({ id: '1', name: 'Test' })
+
+// UPDATE
+mockPrisma.user.update.mockResolvedValue({ id: '1', name: 'Updated' })
+
+// DELETE
+mockPrisma.user.delete.mockResolvedValue({ id: '1' })
+
+// ERROR
+mockPrisma.user.findMany.mockRejectedValue(new Error('DB connection failed'))
+```
+
 ### Construir Requests
 
 ```typescript
@@ -297,6 +335,12 @@ setup('authenticate', async ({ page }) => {
 })
 ```
 
+> **Nota:** Este auth setup es un template para login con formulario HTML tradicional.
+> Si el proyecto usa Clerk, Auth0, NextAuth, o Supabase Auth UI, adaptar el setup:
+> verificar que componentes renderiza la pagina de login y usar los selectores apropiados.
+> Si usa redirect-based auth sin formulario, usar `storageState` con cookies/tokens
+> inyectados directamente via `page.context().addCookies()`.
+
 ### Template E2E
 
 ```typescript
@@ -391,3 +435,50 @@ Reportar como excluidas:
 ```
 ⊘ src/app/not-found.tsx — pagina del sistema, omitido
 ```
+
+---
+
+## Parte 4: Quality Gate (v1.1)
+
+### Score 0-100
+
+`/check-tests` ahora ejecuta 5 fases de validacion antes de la generacion de tests:
+
+| Fase | Puntos | Que valida |
+|------|--------|-----------|
+| Build | 30 | `npm run build` — TypeScript errors, imports rotos |
+| Env vars | 20 | Variables referenciadas vs definidas en `.env*` |
+| Seguridad | 15 | API keys hardcodeadas, endpoints sin auth |
+| Tests | 25 | Cobertura de unit tests + E2E |
+| Lint | 10 | `next lint` o `eslint` |
+
+### Semaforo
+
+- 🟢 **90-100**: Listo para produccion
+- 🟡 **75-89**: Funciona pero hay cosas que mejorar
+- 🟠 **50-74**: Riesgoso, arregla lo rojo
+- 🔴 **0-49**: NO subas esto
+
+### Env vars — que detectar
+
+```bash
+# Buscar todas las referencias en el codigo (compatible macOS + Linux)
+grep -roEh 'process\.env\.[A-Za-z_][A-Za-z0-9_]*' --include='*.ts' --include='*.tsx' --include='*.js' --include='*.mjs' --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist . 2>/dev/null | sort -u
+```
+
+Clasificar como:
+- **Definida**: existe en `.env.local` o `.env` con valor real
+- **Faltante**: referenciada en codigo pero no existe en ningun `.env*`
+- **Placeholder**: existe pero con valor de ejemplo (vacio, `TODO`, `your-key-here`)
+
+### Security — que detectar
+
+- Strings largos hardcodeados que parecen tokens (32+ chars)
+- Prefijos conocidos: `sk_live_`, `sk_test_`, `eyJ` (JWT)
+- `SUPABASE_SERVICE_ROLE_KEY` en archivos con `'use client'`
+- API routes sin importaciones de auth (excepto publicos: health, webhook, callback, cron, revalidate, og, login, register, signup, verify, reset-password, stripe/webhook)
+
+### Pre-push hook
+
+El hook `.husky/pre-push` ahora ejecuta `npm run build` ANTES de los E2E tests.
+Si el build falla, el push se bloquea. Esto garantiza que nunca se suba codigo que no compila.
