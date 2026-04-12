@@ -1,5 +1,33 @@
 # Changelog
 
+## [vite-supabase-lovable] — 2026-04-13
+
+Branch dedicado al stack Vite 5 + React 19 + React Router DOM + Supabase (Lovable-friendly). Los entries anteriores corresponden al kit original de Next.js.
+
+### Added
+
+- **Skill consolidada** `testing-kit-vite-supabase` en `.claude/skills/testing-kit-vite-supabase/` con SKILL.md + 8 referencias: edge-function-contract, production-guard, supabase-mock-builder, gotchas, auth-setup-idempotent, gate-activation, cross-platform, supabase-client-env-override.
+- **Ejemplos drop-in** en `examples/vite-supabase-lovable/`: production-guard.ts, setup.ts, supabase-mock.ts, auth.setup.ts, vitest.config.ts, playwright.config.ts (con `||` fix), testing-kit.config.json, send-certificate.test.ts (6-casos + 2 bonus).
+- **PORTABILITY-CHECKLIST.md** — 8 fases ordenadas para aplicar el kit a un nuevo repo.
+- **.gitattributes** — fuerza LF en `*.sh` y `.husky/*` para Windows.
+- **Husky hooks reescritos**: `pre-commit` = `npm test`; `pre-push` = gate reactivo no-bloqueante con curl probes.
+
+### Changed
+
+- **README.md** reescrito: documenta layout Vite+Supabase, referencias, PORTABILITY-CHECKLIST.
+
+### Removed
+
+- Contenido específico Next.js: `.claude/commands/check-tests.md`, `.claude/rules/testing.md`, `.claude/skills/testing-kit/`, `examples/page.spec.example.ts`, `examples/route.test.example.ts`, `docs/claude-testing-kit.html`.
+
+### Lecciones de las dos instalaciones
+
+- **Team Jerez (2026-04-12)**: refactor de auth.setup.ts pasaba 92 unit tests pero rompía Playwright por loader ESM diferente. Solución: `fs.readFileSync` + `JSON.parse`.
+- **Team BCN (2026-04-12)**: dev server heredaba URL de producción porque `VITE_SUPABASE_URL=""` pasaba por `??` sin caer al fallback. Solución: `||` en `webServer.env`.
+- Verificación triple tras tocar test infra: `npm test` + `npm run test:e2e` + self-heal boundary.
+
+---
+
 ## [1.1.1] — 2026-04-07
 
 ### Fixed

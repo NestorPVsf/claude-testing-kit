@@ -1,1 +1,9 @@
-npm run test
+# Testing kit pre-commit gate (Vite + Supabase).
+# Blocks commits when Vitest unit tests fail.
+#
+# Bypass (emergency only): HUSKY=0 git commit -m "message"
+# Do NOT use --no-verify.
+#
+# Pre-push stays off until the project has stable E2E (see .husky/pre-push).
+# CI is the authoritative E2E gate.
+npm test

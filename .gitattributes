@@ -1,0 +1,8 @@
+# Auto-detect text files and normalize line endings to LF on checkin
+* text=auto
+
+# Force LF on shell scripts — required for Husky hooks on Windows
+*.sh text eol=lf
+.husky/pre-commit text eol=lf
+.husky/pre-push text eol=lf
+.husky/commit-msg text eol=lf

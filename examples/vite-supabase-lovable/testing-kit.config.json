@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "projectType": "vite-spa-supabase",
+  "paths": {
+    "pages": "src/pages",
+    "hooks": "src/hooks",
+    "libs": "src/lib",
+    "edgeFunctions": "supabase/functions",
+    "unitTests": "src",
+    "e2eTests": "tests",
+    "fixtures": "tests/fixtures"
+  },
+  "devServer": {
+    "port": 8080,
+    "command": "npm run dev",
+    "baseUrl": "http://localhost:8080"
+  },
+  "productionGuard": {
+    "allowedHosts": ["localhost", "127.0.0.1", "host.docker.internal"],
+    "allowedHostPatterns": [".staging.supabase.co"],
+    "blacklistedHosts": [
+      "<replace-with-your-prod-host>.com",
+      "<replace-with-your-project-ref>.supabase.co"
+    ]
+  },
+  "testingContract": {
+    "minTestsPerEdgeFunction": 6,
+    "requiredCases": ["200", "401", "400", "404", "500", "custom"],
+    "mockStrategy": "supabase-mock-builder",
+    "mockLocation": "src/test/supabase-mock.ts"
+  },
+  "gates": {
+    "preCommitBlocking": false,
+    "prePushBlocking": false,
+    "reason": "Activate after Tier 1 coverage is green. Follow references/gate-activation.md for 3-cycle verification."
+  }
+}
