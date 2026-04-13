@@ -67,11 +67,11 @@ setup('authenticate', async ({ page }) => {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!email || !password) {
-    // eslint-disable-next-line no-console
-    console.warn('[testing-kit] Missing TEST_USER_EMAIL/PASSWORD in .env.test — skipping.');
-    if (!existsSync('tests/.auth')) mkdirSync('tests/.auth', { recursive: true });
-    await page.context().storageState({ path: authFile });
-    return;
+    throw new Error(
+      '[testing-kit] TEST_USER_EMAIL and TEST_USER_PASSWORD must be set in .env.test. ' +
+        'Without them Playwright tests cannot authenticate, and skipping silently masks ' +
+        'real failures later in the spec. See .env.test.example for the required keys.',
+    );
   }
 
   if (supabaseUrl && anonKey) {

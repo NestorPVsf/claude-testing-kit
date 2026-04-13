@@ -37,6 +37,7 @@ function loadBlacklistedHosts(): string[] {
 const BLACKLISTED_HOSTS: string[] = loadBlacklistedHosts();
 
 export function assertNotProduction(): void {
+  // Layer 1 — process.env (siempre disponible: Node, Vitest, Playwright).
   const rawUrl =
     (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
     (typeof process !== 'undefined' && process.env?.SUPABASE_URL) ||
@@ -45,6 +46,20 @@ export function assertNotProduction(): void {
   if (!rawUrl) {
     throw new Error(
       '[testing-kit] VITE_SUPABASE_URL is not set. Did you run `supabase start` and create .env.test?',
+    );
+  }
+
+  // Layer 2 — import.meta.env (solo poblado en Vite/Vitest, undefined en
+  // Node/Playwright puro). Cubre el gap donde process.env tiene la URL local
+  // pero vitest.config.ts inyectó '' en import.meta.env porque .env.test no
+  // existe → client.ts caería al fallback hardcoded de producción. Sin este
+  // check, los tests pasan el guard pero hablan con prod.
+  const importMetaEnv = (import.meta as { env?: Record<string, string | undefined> }).env;
+  if (importMetaEnv && importMetaEnv.VITE_SUPABASE_URL === '') {
+    throw new Error(
+      '[testing-kit] import.meta.env.VITE_SUPABASE_URL is empty. ' +
+        'vitest.config.ts loaded .env files but VITE_SUPABASE_URL is missing. ' +
+        'Create .env.test (see .env.test.example) and fill it from `supabase status -o env`.',
     );
   }
 

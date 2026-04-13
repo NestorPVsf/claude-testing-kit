@@ -6,6 +6,17 @@ import { resolve } from 'path';
 // URL that Lovable hardcoded in src/integrations/supabase/client.ts.
 loadDotenv({ path: resolve(process.cwd(), '.env.test'), override: true });
 
+// Fail loud if the anon key is missing — empty key means the dev server
+// boots and Supabase auth returns 401 on every request, which surfaces as
+// confusing test failures far from the root cause.
+if (!process.env.VITE_SUPABASE_ANON_KEY) {
+  throw new Error(
+    '[testing-kit] VITE_SUPABASE_ANON_KEY is empty in .env.test. ' +
+      'Playwright webServer would start with an empty key and every request would 401. ' +
+      'Fill it in .env.test (see .env.test.example) from `supabase status -o env`.',
+  );
+}
+
 export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.spec.ts',

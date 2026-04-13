@@ -1,5 +1,23 @@
 # Changelog
 
+## [vite-supabase-lovable] — 2026-04-13 (update)
+
+### Added
+
+- **`references/failloud-test-env.md`** — patrón fail-loud en configuration boundaries de test infra (production-guard, playwright.config, auth.setup). Derivado del code review de ACA Global post-install.
+
+### Changed
+
+- **`examples/vite-supabase-lovable/production-guard.ts`** — `assertNotProduction()` ahora valida también `import.meta.env.VITE_SUPABASE_URL` (Layer 2). Cierra el gap donde `.env.test` ausente en CI dejaba pasar tests con fallback a la URL prod hardcoded de `client.ts`.
+- **`examples/vite-supabase-lovable/playwright.config.ts`** — throw a module-load si `VITE_SUPABASE_ANON_KEY` está vacía. Evita que el dev server arranque con key `''` y todos los requests devuelvan 401 (error confuso tres capas alejado del root cause).
+- **`examples/vite-supabase-lovable/auth.setup.ts`** — fail-fast con throw si faltan `TEST_USER_EMAIL`/`TEST_USER_PASSWORD`. Antes hacía `console.warn` + storageState vacío → specs corrían auth-less y fallaban confusamente. Ahora error explícito al inicio.
+
+### Origen
+
+Tercera instalación real del kit (ACA Global Academy, 2026-04-13). Code review post-install surfaced tres silent-default footguns con un patrón común: en cualquier boundary entre test runner y Supabase client, un default silencioso deja pasar producción. Fix original en ACA commit `bfbb7c8`; portado aquí como versión canónica del kit.
+
+---
+
 ## [vite-supabase-lovable] — 2026-04-13
 
 Branch dedicado al stack Vite 5 + React 19 + React Router DOM + Supabase (Lovable-friendly). Los entries anteriores corresponden al kit original de Next.js.
