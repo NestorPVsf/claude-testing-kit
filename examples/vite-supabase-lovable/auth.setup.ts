@@ -7,6 +7,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { assertNotProduction } from '../src/test/production-guard';
+import { isValidSupabaseKey, describeKeyFormatProblem } from '../src/test/supabase-key-format';
 
 // override: true — .env.test debe ganar al shell env
 config({ path: resolve(process.cwd(), '.env.test'), override: true });
@@ -15,6 +16,26 @@ config({ path: resolve(process.cwd(), '.env.test'), override: true });
 assertNotProduction();
 
 const authFile = 'tests/.auth/user.json';
+
+function assertValidKey(name: string, value: string | undefined): void {
+  if (!value) {
+    throw new Error(
+      `[testing-kit] ${name} is empty in .env.test. ` +
+        'Run `supabase status -o env` and copy ANON_KEY → VITE_SUPABASE_ANON_KEY ' +
+        'and SERVICE_ROLE_KEY → SUPABASE_SERVICE_ROLE_KEY (the JWT versions, not the sb_* ones, ' +
+        'though sb_* also work). See .env.test.example.',
+    );
+  }
+  if (!isValidSupabaseKey(value)) {
+    throw new Error(
+      `[testing-kit] ${name} is malformed: ${describeKeyFormatProblem(value)}. ` +
+        'Regenerate .env.test from `supabase status -o env` (the human-readable ' +
+        '`supabase status` output truncates keys for display). Without a valid key, ' +
+        '`/auth/v1/admin/users` returns 403 bad_jwt and the error message points at the ' +
+        'fetch instead of the env var.',
+    );
+  }
+}
 
 async function trySupabasePasswordGrant(
   supabaseUrl: string,
@@ -74,6 +95,8 @@ setup('authenticate', async ({ page }) => {
     );
   }
 
+  assertValidKey('VITE_SUPABASE_ANON_KEY', anonKey);
+
   if (supabaseUrl && anonKey) {
     const probe = await trySupabasePasswordGrant(supabaseUrl, anonKey, email, password);
     const looksLikeInvalidCreds =
@@ -82,12 +105,10 @@ setup('authenticate', async ({ page }) => {
       /invalid|grant|credentials/i.test(probe.body);
 
     if (looksLikeInvalidCreds) {
-      if (!serviceRoleKey) {
-        throw new Error(
-          '[testing-kit] Sign-in failed and SUPABASE_SERVICE_ROLE_KEY not set — cannot self-heal.',
-        );
-      }
-      await provisionTestUser(supabaseUrl, serviceRoleKey, email, password);
+      // Service role only required on the self-heal branch, not for happy-path login.
+      // Validate format here so the error is unambiguous when self-heal kicks in.
+      assertValidKey('SUPABASE_SERVICE_ROLE_KEY', serviceRoleKey);
+      await provisionTestUser(supabaseUrl, serviceRoleKey!, email, password);
     } else if (!probe.ok) {
       throw new Error(`[testing-kit] Unexpected Supabase Auth response: ${probe.status} ${probe.body}`);
     }

@@ -78,6 +78,29 @@ El `|| ''` de anon key es intencional — si falta, el guard abortará el arranq
 
 Forzar LF en el checkout de scripts. El resto del repo mantiene autocrlf normal. Ver `cross-platform.md`.
 
+## 8. `bad_jwt: invalid number of segments` en `provisionTestUser`
+
+**Síntoma**: `auth.setup.ts` falla con
+```
+403 {"code":403,"error_code":"bad_jwt","msg":"invalid JWT: ... token contains an invalid number of segments"}
+```
+en la primera llamada a `POST /auth/v1/admin/users`.
+
+**Causa**: `.env.test` tiene la `SUPABASE_SERVICE_ROLE_KEY` (o `VITE_SUPABASE_ANON_KEY`) **truncada**. Casi siempre por copy-paste del output humano de `supabase status` (que recorta las keys para display) en vez de `supabase status -o env`. Un JWT válido tiene 3 segmentos separados por `.`; el truncado tiene 1 ó 2.
+
+**Cómo confirmar sin imprimir secrets**:
+```bash
+awk -F= '$1=="SUPABASE_SERVICE_ROLE_KEY" {
+  v=$2; gsub(/^"|"$/,"",v); dots=gsub(/\./,".",v);
+  printf "dots=%d len=%d\n", dots, length(v)
+}' .env.test
+# Esperado: dots=2, len>100 (JWT) o prefix sb_*
+```
+
+**Fix**: regenerar `.env.test` desde `supabase status -o env`. El kit incluye `assertValidKey()` en `auth.setup.ts` que detecta esto antes del fetch y lanza un mensaje accionable. No silenciar; el error apunta a la causa raíz (env malformada), no al endpoint.
+
+**Por qué no se reproduce siempre**: la CLI ~2.85+ emite `Publishable sb_publishable_*` y `Secret sb_secret_*` en el output humano, pero `-o env` sigue emitiendo ANON_KEY/SERVICE_ROLE_KEY como JWT legacy. Si el dev copia del output humano cree estar pegando un JWT y obtiene basura.
+
 ## 7. `import.meta.env` vacío en tests de hooks
 
 **Síntoma**: un hook lee `import.meta.env.VITE_SUPABASE_URL` para algo, y en tests unit devuelve undefined.

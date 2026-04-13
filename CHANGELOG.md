@@ -1,5 +1,25 @@
 # Changelog
 
+## [vite-supabase-lovable] — 2026-04-13 (update 2)
+
+### Added
+
+- **`examples/vite-supabase-lovable/supabase-key-format.ts`** — shared validator exportando `isValidSupabaseKey` + `describeKeyFormatProblem`. Acepta JWT legacy (3 segmentos, prefix `eyJ`, >100 chars) y nuevas API keys (`sb_publishable_*` / `sb_secret_*` con pattern estricto). Regex: `^sb_(publishable|secret)_[A-Za-z0-9_-]{22,}_[A-Za-z0-9_-]{8,}$`.
+- **`examples/vite-supabase-lovable/.env.test.example`** — template explícito con instrucciones sobre usar `supabase status -o env` (no el output humano que trunca).
+- **`references/db-reset-idempotency.md`** — patrón `DROP POLICY IF EXISTS` + `INSERT SELECT WHERE EXISTS` para migrations fresh-safe. Derivado de los blockers #1 y #2 de ACA Global.
+- **gotcha #8** en `references/gotchas.md` — `bad_jwt: invalid number of segments` por keys truncadas en `.env.test`. Causa raíz: copy-paste del output humano de `supabase status` (recorta para display) en vez de `supabase status -o env`.
+
+### Changed
+
+- **`examples/vite-supabase-lovable/playwright.config.ts`** — añadido import de `supabase-key-format` y validación early de `VITE_SUPABASE_ANON_KEY` con mensaje accionable que incluye prefix y longitud del valor malformado.
+- **`examples/vite-supabase-lovable/auth.setup.ts`** — helper `assertValidKey(name, value)` que centraliza validation. `SUPABASE_SERVICE_ROLE_KEY` se valida diferida dentro del branch self-heal (no antes), evita falsos positivos cuando login feliz no necesita service role.
+
+### Origen
+
+Cuarta instalación real del kit (ACA Global Academy PR #3, 2026-04-13). Codex + Gemini convergieron en el review, ambos aprobaron después del refactor del commit 3. Causa raíz sorprendente: no era incompatibilidad `sb_*` vs JWT (el server local acepta ambos), era key truncada por copy-paste — `.env.test` tenía 1 segmento en vez de 3 porque el dev copió del output humano.
+
+---
+
 ## [vite-supabase-lovable] — 2026-04-13 (update)
 
 ### Added

@@ -1,19 +1,30 @@
 import { defineConfig, devices } from '@playwright/test';
 import { config as loadDotenv } from 'dotenv';
 import { resolve } from 'path';
+import { isValidSupabaseKey, describeKeyFormatProblem } from './src/test/supabase-key-format';
 
 // Load .env.test with override so webServer uses local Supabase, not the prod
 // URL that Lovable hardcoded in src/integrations/supabase/client.ts.
 loadDotenv({ path: resolve(process.cwd(), '.env.test'), override: true });
 
-// Fail loud if the anon key is missing — empty key means the dev server
-// boots and Supabase auth returns 401 on every request, which surfaces as
-// confusing test failures far from the root cause.
-if (!process.env.VITE_SUPABASE_ANON_KEY) {
+// Fail loud if the anon key is missing or malformed — empty/truncated key
+// means the dev server boots and Supabase auth returns 401/403 (bad_jwt) on every
+// request, which surfaces as confusing test failures far from the root cause.
+const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+if (!anonKey) {
   throw new Error(
     '[testing-kit] VITE_SUPABASE_ANON_KEY is empty in .env.test. ' +
       'Playwright webServer would start with an empty key and every request would 401. ' +
       'Fill it in .env.test (see .env.test.example) from `supabase status -o env`.',
+  );
+}
+if (!isValidSupabaseKey(anonKey)) {
+  throw new Error(
+    `[testing-kit] VITE_SUPABASE_ANON_KEY in .env.test is malformed: ` +
+      `${describeKeyFormatProblem(anonKey)} ` +
+      `(starts with "${anonKey.slice(0, 3)}", ${anonKey.length} chars). ` +
+      'Regenerate from `supabase status -o env`; the human-readable `supabase status` ' +
+      'output truncates keys. See .env.test.example.',
   );
 }
 
